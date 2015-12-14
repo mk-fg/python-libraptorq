@@ -120,7 +120,7 @@ privileges are often required.
 Use "install --user", `~/.pydistutils.cfg`_ or virtualenv_ to do unprivileged
 installs into custom paths.
 
-Alternatively, `./rq` tool can be run right from the checkout tree without any
+Alternatively, ``./rq`` tool can be run right from the checkout tree without any
 installation, if that's the only thing you need there.
 
 .. _pip: http://pip-installer.org/
