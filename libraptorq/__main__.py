@@ -147,7 +147,7 @@ def main(args=None, error_func=None):
 			sort_keys=True, indent=2, separators=(',', ': ') )
 		log.debug(
 			'Encoded %s block(s), %s symbol(s) total (%s for repair). Dropped %s symbol(s).',
-			n_blocks, len(symbols), n_block_reps_total, n_dropped )
+			n_blocks, len(symbols) + n_dropped, n_block_reps_total, n_dropped )
 
 
 	elif opts.cmd == 'decode':

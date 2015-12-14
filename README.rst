@@ -56,20 +56,20 @@ a standalone tool, or for basic algorithm testing/showcase.
 
 Encode file, with 50% extra symbols (resulting data chunks to be stored/transmitted
 on/over lossy medium) and 20% of total of these dropped (just for testing purposes)
-before saving them to setup.py.enc::
+before saving them to "setup.py.enc"::
 
   % ./rq --debug encode --repair-symbols-rate 0.5 --drop-rate 0.2 setup.py setup.py.enc
-  2015-12-15 03:00:01 :: DEBUG :: Encoded 24 block(s),
-    562 symbol(s) total (240 for repair). Dropped 141 symbol(s).
+  2015-12-15 03:36:32 :: DEBUG :: Encoded 21 block(s),\
+    629 symbol(s) total (210 for repair). Dropped 126 symbol(s).
 
-Decode resulting file back from this::
+Decode original file back from this::
 
   % ./rq --debug decode setup.py.enc setup.py.dec
-  2015-12-15 03:02:33 :: DEBUG :: Decoded 1849B of data from 562 symbols (total, discarded: 0)
+  2015-12-15 03:36:38 :: DEBUG :: Decoded 1673B of data from 503 symbols (total, discarded: 0)
 
   % sha256sum -b setup.py{,.dec}
-  e73507cbf1422e1d53b10e72433989b8145b8946549104d6346219518221b6a1 *setup.py
-  e73507cbf1422e1d53b10e72433989b8145b8946549104d6346219518221b6a1 *setup.py.dec
+  0a19b84ca98562476f79d55f19ac853ea49e567205dcc9139ba986e8572f9681 *setup.py
+  0a19b84ca98562476f79d55f19ac853ea49e567205dcc9139ba986e8572f9681 *setup.py.dec
 
 Output data ("setup.py.enc" in the example) for the script is JSON-encoded list
 of base64-encoded symbols, as well as some parameters for lib init.
