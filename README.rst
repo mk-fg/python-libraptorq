@@ -76,6 +76,12 @@ of base64-encoded symbols, as well as some parameters for lib init.
 
 See output with --help option for all the other script parameters.
 
+To use as a python module, do ``import libraptorq`` and roughly same things as
+`__main__.py <https://github.com/mk-fg/python-libraptorq/blob/master/libraptorq/__main__.py>`_
+does.
+
+See also libRaptorQ_ docs for info on its API, which this module wraps around.
+
 
 
 Installation
