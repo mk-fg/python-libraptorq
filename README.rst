@@ -54,9 +54,12 @@ It includes command-line script ("rq", when installed or as symlink in the
 repo), which has example code for both encoding and decoding, and can be used as
 a standalone tool, or for basic algorithm testing/showcase.
 
-Encode file, with 50% extra symbols (resulting data chunks to be stored/transmitted
-on/over lossy medium) and 20% of total of these dropped (just for testing purposes)
-before saving them to "setup.py.enc"::
+Can also be used from command-line via ``python2 -m libraptorq ...`` invocation
+(when installed as module), e.g. ``python2 -m libraptorq --help``.
+
+To encode file, with 50% extra symbols (resulting data chunks to be
+stored/transmitted on/over lossy medium) and 20% of total of these dropped (just
+for testing purposes) before saving them to "setup.py.enc"::
 
   % ./rq --debug encode --repair-symbols-rate 0.5 --drop-rate 0.2 setup.py setup.py.enc
   2015-12-15 03:36:32 :: DEBUG :: Encoded 21 block(s),\
@@ -76,7 +79,7 @@ of base64-encoded symbols, as well as some parameters for lib init.
 
 See output with --help option for all the other script parameters.
 
-To use as a python module, do ``import libraptorq`` and roughly same things as
+To use as a python2 module, do ``import libraptorq`` and roughly same things as
 `__main__.py <https://github.com/mk-fg/python-libraptorq/blob/master/libraptorq/__main__.py>`_
 does.
 
@@ -102,7 +105,7 @@ If you don't have it, use::
 
 Alternatively (see also `pip2014.com`_ and `pip install guide`_)::
 
-  % curl https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python
+  % curl https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python2
   % pip install libraptorq
 
 Or, if you absolutely must::
