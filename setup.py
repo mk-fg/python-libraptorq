@@ -13,7 +13,7 @@ except IOError: readme = ''
 setup(
 
 	name = 'libraptorq',
-	version = '15.12.5',
+	version = '15.12.6',
 	author = 'Mike Kazantsev',
 	author_email = 'mk.fraggod@gmail.com',
 	license = 'WTFPL',

@@ -92,7 +92,8 @@ Installation
 
 It's a regular package for Python 2.7 (not 3.X).
 
-It uses and needs CFFI_ and libRaptorQ_ installed on the system.
+It uses and needs CFFI_ (can/should be installed by pip_) and libRaptorQ_
+installed on the system.
 
 Using pip_ is the best way::
 
@@ -131,3 +132,31 @@ installation, if that's the only thing you need there.
 .. _pip install guide: http://www.pip-installer.org/en/latest/installing.html
 .. _~/.pydistutils.cfg: http://docs.python.org/install/index.html#distutils-configuration-files
 .. _virtualenv: http://pypi.python.org/pypi/virtualenv
+
+
+
+Random Notes
+------------
+
+* libRaptorQ is currently used via CFFI in "ABI Mode" to avoid any extra hassle
+  with compilation and the need for compiler, see `CFFI docs on the subject`_
+  for more info on what it means.
+
+* I'm not very familiar with the algo (at the moment of writing this, at least),
+  so can use non-canonical names for things involved, bad defaults or examples.
+
+  If you spot any of these - please do leave a note.
+
+* When testing decoding of some encoded data, libRaptorQ *sometimes* returns
+  errors for ``add_symbol()`` calls, essentially discarding some valid symbols.
+
+  Not sure if that's supposed to happen (again, lack of familiarity with the
+  algo), but stuff usually can be decoded regardless.
+
+* libRaptorQ allows to specify "rq_type" parameter, which is hard-coded to
+  ENC_32/DEC_32 in the module for now, for simplicity.
+
+* Lack of Python 3.X compatibility is due to me not using it at all (yet?), so
+  don't need it, have nothing against it in principle.
+
+.. _CFFI docs on the subject: https://cffi.readthedocs.org/en/latest/cdef.html
