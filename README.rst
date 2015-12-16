@@ -103,7 +103,7 @@ To use as a python2 module::
 
   from libraptorq import RQEncoder
 
-  data = sys.stdin.read()
+  data = 'some input string' * 500
 
   with RQEncoder(data, min_subsymbol_size=4, symbol_size=16, max_memory=200) as enc:
 
