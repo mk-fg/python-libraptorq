@@ -13,7 +13,7 @@ except IOError: readme = ''
 setup(
 
 	name = 'libraptorq',
-	version = '15.12.7',
+	version = '15.12.8',
 	author = 'Mike Kazantsev',
 	author_email = 'mk.fraggod@gmail.com',
 	license = 'WTFPL',
@@ -48,8 +48,10 @@ setup(
 		'Topic :: System :: Archiving',
 		'Topic :: Utilities' ],
 
-	packages=find_packages(),
-	include_package_data=True,
+	install_requires = ['cffi', 'setuptools'],
+
+	packages = find_packages(),
+	include_package_data = True,
 
 	entry_points = {
 		'console_scripts': ['rq = libraptorq.__main__:main'] })

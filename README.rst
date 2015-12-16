@@ -15,7 +15,7 @@ Quoting `wikipedia on Raptor code`_:
   encoding symbols such that knowledge of any k or more encoding symbols allows
   the message to be recovered with some non-zero probability.
 
-  Raptor ("RApid TORnado") codes are the first known class of fountain codes
+  Raptor ("RAPid TORnado") codes are the first known class of fountain codes
   with linear time encoding and decoding.
 
 And RFC6330_:
