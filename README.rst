@@ -38,6 +38,8 @@ paper`_).
 | Each symbol can be up to 65.535 (2**16 - 1) bytes long.
 | This sums up to ~881 GiB max for one encoder input.
 
+Encoded data will always be at least 4x larger in size than the original.
+
 .. _CFFI: http://cffi.readthedocs.org/
 .. _libRaptorQ: https://github.com/LucaFulchir/libRaptorQ/
 .. _RFC6330: https://tools.ietf.org/html/rfc6330
@@ -71,13 +73,13 @@ required symbols + X repair symbols) dropped (just for testing purposes) before
 saving them to "setup.py.enc"::
 
   % ./rq --debug encode --repair-symbols-rate 0.5 --drop-rate 0.3 setup.py setup.py.enc
-  2015-12-16 15:59:00 :: DEBUG :: Encoded 1673B into 629 symbols\
-    (needed: >419, repair rate: 50%), 189 dropped (30%), 440 left in output
+  2015-12-16 22:05:51 :: DEBUG :: Encoded 1,723 B into 849 symbols (needed: >431,\
+    repair rate: 50%), 198 dropped (30%), 651 left in output (7,728 B without ids)
 
 Decode original file back from these::
 
   % ./rq --debug decode setup.py.enc setup.py.dec
-  2015-12-16 15:57:09 :: DEBUG :: Decoded 1673B of data from 440 symbols (total, discarded: 0)
+  2015-12-16 22:05:51 :: DEBUG :: Decoded 1,723 B of data from 476 symbols (total, discarded: 0)
 
   % sha256sum -b setup.py{,.dec}
   0a19b84ca98562476f79d55f19ac853ea49e567205dcc9139ba986e8572f9681 *setup.py

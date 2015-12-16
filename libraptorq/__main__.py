@@ -35,6 +35,8 @@ b64_decode = lambda s:\
 	base64.urlsafe_b64decode(bytes(s))\
 		if '-' in s or '_' in s else bytes(s).decode('base64')
 
+num_fmt = lambda n: '{:,}'.format(n)
+
 
 def main(args=None, error_func=None):
 	import argparse
@@ -127,10 +129,12 @@ def main(args=None, error_func=None):
 				symbols.extend(block_syms)
 
 		log.debug(
-			'Encoded %sB into %s symbols (needed: >%d,'
-				' repair rate: %d%%), %s dropped (%d%%), %s left in output',
-			len(data), len(symbols) + n_drop, enc_k,
-				opts.repair_symbols_rate*100, n_drop, opts.drop_rate*100, len(symbols) )
+			'Encoded %s B into %s symbols (needed: >%s, repair rate:'
+				' %d%%), %s dropped (%d%%), %s left in output (%s B without ids)',
+			num_fmt(len(data)), num_fmt(len(symbols) + n_drop),
+				num_fmt(enc_k), opts.repair_symbols_rate*100,
+				num_fmt(n_drop), opts.drop_rate*100, num_fmt(len(symbols)),
+				num_fmt(len(''.join(s[1] for s in symbols if s))) )
 		data = json.dumps(
 			dict( oti_scheme=oti_scheme, oti_common=oti_common,
 				symbols=list((s[0], b64_encode(s[1])) for s in symbols if s) ),
@@ -153,8 +157,9 @@ def main(args=None, error_func=None):
 					' (total, discarded: %s) - %s', n_symbols, n_discarded, err )
 				data = None
 			else:
-				log.debug( 'Decoded %sB of data from %s symbols'
-					' (total, discarded: %s)', len(data), n_symbols, n_discarded )
+				log.debug(
+					'Decoded %s B of data from %s symbols (total, discarded: %s)',
+					num_fmt(len(data)), num_fmt(n_symbols), num_fmt(n_discarded) )
 
 
 	else: raise NotImplementedError(opts.cmd)
