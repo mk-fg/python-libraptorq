@@ -64,23 +64,24 @@ def main(args=None, error_func=None):
 		help='No idea what it means, see RFC6330. Default: %(default)s')
 	cmd.add_argument('-s', '--symbol-size',
 		type=int, default=16, metavar='bytes',
-		help='No idea what it means, see RFC6330. Default: %(default)s')
+		help='Size of each indivisible (must either be present intact'
+			' or lost entirely when decoding) symbol in the output. Default: %(default)s')
 	cmd.add_argument('-m', '--max-memory',
 		type=int, default=200, metavar='megabytes?',
 		help='Uh... max memory in megs? Not sure. Default: %(default)s')
 
 	cmd.add_argument('-n', '--repair-symbols-rate',
 		default=0, type=float, metavar='float',
-		help='Number of extra symbols to generate above what is required'
+		help='Fraction of extra symbols to generate above what is required'
 				' to reassemble to file as a fraction of that "required" count.'
-			' For example, if 100 symbols are required, 0.5 will generate 150 symbols.'
+			' For example, if 100 symbols are required, "-n 0.5" will generate 150 symbols.'
 			' Default is to only generate required amount (i.e. "-n 0").')
 
 	cmd.add_argument('-d', '--drop-rate',
-		default=0, type=float, metavar='float',
+		default=0, type=float, metavar='0-1.0',
 		help='Drop specified randomly-picked fraction'
-			' of resulting chunks (incl. ones for repair),'
-			' i.e. just discard these right before output. Mainly useful for testing.')
+				' of symbols encoded for each block (incl. ones for repair).'
+			' I.e. just discard these right after encoding. Mainly useful for testing.')
 
 
 	cmd = cmds.add_parser('decode', help='Decode lines of base64 into a file.')
@@ -109,45 +110,32 @@ def main(args=None, error_func=None):
 	if opts.cmd == 'encode':
 		with RQEncoder( data,
 				opts.min_subsymbol_size, opts.symbol_size, opts.max_memory ) as enc:
-			enc.precompute(opts.threads)
-
-			symbols, n_block_reps_total = dict(), 0
-
-			n_blocks = enc.blocks
-			for sbn in xrange(n_blocks):
-
-				n_block_syms = enc.symbols(sbn)
-				for esi in xrange(n_block_syms):
-					sym_id = enc.sym_id(esi, sbn)
-					symbols[sym_id] = enc.encode(sym_id)
-
-				n_block_reps = int(math.ceil(n_block_syms * opts.repair_symbols_rate))
-				n_block_reps_max = enc.max_repair(sbn)
-				if n_block_reps_max < n_block_reps:
-					log.warn( 'Number of repair symbols is'
-						' above max allowed: %s > %s', n_block_reps, n_block_reps_max )
-				n_block_reps = min(n_block_reps, n_block_reps_max)
-				n_block_reps_total += n_block_reps
-				for esi in xrange(n_block_reps):
-					sym_id = enc.sym_id(n_block_syms + esi, sbn)
-					symbols[sym_id] = enc.encode(sym_id)
 			oti_scheme, oti_common = enc.oti_scheme, enc.oti_common
+			enc.precompute(opts.threads, background=False)
 
-		n_dropped = 0
-		if opts.drop_rate > 0:
-			import random
-			n_dropped = int(round(len(symbols) * opts.drop_rate, 0))
-			for n in xrange(n_dropped):
-				k = random.choice(symbols.keys())
-				del symbols[k]
+			symbols, enc_k, n_drop = dict(), 0, 0
+			for block in enc:
+				enc_k += block.symbols # not including repair ones
+				block_syms = dict(block.encode_iter(
+					repair_rate=opts.repair_symbols_rate ))
+				if opts.drop_rate > 0:
+					import random
+					n_drop_block = int(round(len(block_syms) * opts.drop_rate, 0))
+					for n in xrange(n_drop_block):
+						k = random.choice(block_syms.keys())
+						del block_syms[k]
+					n_drop += n_drop_block
+				symbols.update(block_syms)
 
 		data = json.dumps(
 			dict( oti_scheme=oti_scheme, oti_common=oti_common,
 				symbols=dict((k, b64_encode(v)) for k,v in symbols.viewitems()) ),
 			sort_keys=True, indent=2, separators=(',', ': ') )
 		log.debug(
-			'Encoded %s block(s), %s symbol(s) total (%s for repair). Dropped %s symbol(s).',
-			n_blocks, len(symbols) + n_dropped, n_block_reps_total, n_dropped )
+			'Encoded %s symbols (needed: >%d,'
+				' repair rate: %d%%), %s dropped (%d%%), %s left in output',
+			len(symbols) + n_drop, enc_k,
+				opts.repair_symbols_rate*100, n_drop, opts.drop_rate*100, len(symbols) )
 
 
 	elif opts.cmd == 'decode':
@@ -160,17 +148,23 @@ def main(args=None, error_func=None):
 				except Exception as err:
 					# log.debug('Failed to add symbol - %s', err) # XXX: not sure if this should happen
 					n_discarded += 1
-			data = dec.decode()
-		log.debug( 'Decoded %sB of data from %s symbols'
-			' (total, discarded: %s)', len(data), n_symbols, n_discarded )
+			try: data = dec.decode()
+			except RQError:
+				log.error( 'Faled to decode data from'
+					' %s symbols (total, discarded: %s)', n_symbols, n_discarded )
+				data = None
+			else:
+				log.debug( 'Decoded %sB of data from %s symbols'
+					' (total, discarded: %s)', len(data), n_symbols, n_discarded )
 
 
 	else: raise NotImplementedError(opts.cmd)
 
 
-	dst = sys.stdout if not opts.path_dst else open(opts.path_dst, 'wb')
-	try: dst.write(data)
-	finally: dst.close()
+	if data:
+		dst = sys.stdout if not opts.path_dst else open(opts.path_dst, 'wb')
+		try: dst.write(data)
+		finally: dst.close()
 
 
 if __name__ == '__main__': sys.exit(main())

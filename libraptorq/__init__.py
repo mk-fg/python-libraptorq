@@ -7,7 +7,7 @@ import math
 from cffi import FFI
 
 
-def _add_func_wrappers(cls_name, cls_parents, cls_attrs):
+def _add_lib_wrappers(cls_name, cls_parents, cls_attrs):
 	def make_ctx_func(func_name):
 		ctx_fn = 'rq_{}'.format(func_name)
 		def _ctx_func(self, *args):
@@ -166,13 +166,10 @@ class RQObject(object):
 
 class RQEncoder(RQObject):
 
-	_ctx_func_props = [
-		'symbol_size', 'blocks', 'bytes',
+	_ctx_func_props = [ 'symbol_size', 'blocks', 'bytes',
 		'precompute_max_memory', 'OTI_Common', 'OTI_Scheme' ]
-	_ctx_func_wrap = [
-		'block_size', 'symbols', 'free_block', 'max_repair', # args: sbn
-	]
-	__metaclass__ = _add_func_wrappers
+	_ctx_func_wrap = ['block_size', 'symbols', 'free_block', 'max_repair'] # args: sbn
+	__metaclass__ = _add_lib_wrappers
 
 	def __init__(self, data, min_subsymbol_size, symbol_size, max_memory):
 		super(RQEncoder, self).__init__()
@@ -197,12 +194,41 @@ class RQEncoder(RQObject):
 		if n != self._sym_n: raise RQError('Failure when creating the symbol')
 		return buff_get()
 
+	def encode_block_iter(self):
+		for sbn in xrange(self.blocks):
+			yield RQEncoderBlock(self, sbn)
+
+	def __iter__(self): return self.encode_block_iter()
+
+
+class RQEncoderBlock(object):
+
+	symbol_size = property(lambda s: s.encoder.symbol_size)
+	symbols = property(lambda s: s.encoder.symbols(s.sbn))
+	max_repair = property(lambda s: s.encoder.max_repair(s.sbn))
+
+	def __init__(self, encoder, sbn):
+		self.encoder, self.sbn = encoder, sbn
+
+	def encode(self, esi):
+		sym_id = self.encoder.sym_id(esi, self.sbn)
+		return sym_id, self.encoder.encode(sym_id)
+
+	def encode_iter(self, repair_rate=None, repair_count_max=None):
+		n = self.symbols
+		nr = int(math.ceil(n * repair_rate) if repair_rate is not None else 0)
+		nr = min(nr, self.max_repair)
+		if repair_count_max is not None: nr = min(nr, repair_count_max)
+		for esi in xrange(n + nr): yield self.encode(esi)
+
+	def __iter__(self): return self.encode_iter()
+
 
 class RQDecoder(RQObject):
 
 	_ctx_func_props = ['symbol_size', 'blocks', 'bytes']
-	_ctx_func_wrap = ['block_size'] # args: sbn
-	__metaclass__ = _add_func_wrappers
+	_ctx_func_wrap = ['block_size', 'symbols', 'max_repair'] # args: sbn
+	__metaclass__ = _add_lib_wrappers
 
 	def __init__(self, oti_common, oti_scheme):
 		super(RQDecoder, self).__init__()
