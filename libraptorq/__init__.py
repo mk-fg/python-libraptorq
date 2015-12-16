@@ -7,21 +7,22 @@ import math
 from cffi import FFI
 
 
-def _add_lib_wrappers(cls_name, cls_parents, cls_attrs):
+def _add_lib_wrappers(funcs=None, props=None):
 	def make_ctx_func(func_name):
 		ctx_fn = 'rq_{}'.format(func_name)
 		def _ctx_func(self, *args):
 			return getattr(self, ctx_fn)(*args)
 		return _ctx_func
-	wrap = cls_attrs.get('_ctx_func_wrap') or list()
-	props = cls_attrs.get('_ctx_func_props') or list()
-	for fn in it.chain(props, wrap):
-		k = fn.lower()
-		if k in cls_attrs: continue
-		func = make_ctx_func(fn)
-		if fn in props: func = property(func)
-		cls_attrs[k] = func
-	return type(cls_name, cls_parents, cls_attrs)
+	def _add_wrappers(cls_name, cls_parents, cls_attrs):
+		ctx_funcs, ctx_props = funcs or list(), props or list()
+		for fn in it.chain(ctx_props, ctx_funcs):
+			k = fn.lower()
+			if k in cls_attrs: continue
+			func = make_ctx_func(fn)
+			if fn in ctx_props: func = property(func)
+			cls_attrs[k] = func
+		return type(cls_name, cls_parents, cls_attrs)
+	return _add_wrappers
 
 
 class RQError(Exception): pass
@@ -124,6 +125,8 @@ class RQObject(object):
 		self.rq_types = ( ['NONE', None]
 			+ list('ENC_{}'.format(2**n) for n in xrange(3, 7))
 			+ list('DEC_{}'.format(2**n) for n in xrange(3, 7)) )
+		self._rq_type, self._rq_blk = 32, 'uint32_t'
+		self._rq_blk_size = self._ffi.sizeof(self._rq_blk)
 
 	def rq_type_val(self, v, pre):
 		if isinstance(v, int) or v.isdigit(): v = '{}_{}'.format(pre, v).upper()
@@ -166,20 +169,17 @@ class RQObject(object):
 
 class RQEncoder(RQObject):
 
-	_ctx_func_props = [ 'symbol_size', 'blocks', 'bytes',
-		'precompute_max_memory', 'OTI_Common', 'OTI_Scheme' ]
-	_ctx_func_wrap = ['block_size', 'symbols', 'free_block', 'max_repair'] # args: sbn
-	__metaclass__ = _add_lib_wrappers
+	__metaclass__ = _add_lib_wrappers(
+		props=[ 'symbol_size', 'blocks', 'bytes',
+			'precompute_max_memory', 'OTI_Common', 'OTI_Scheme' ],
+		funcs=['block_size', 'symbols', 'free_block', 'max_repair'] )
 
 	def __init__(self, data, min_subsymbol_size, symbol_size, max_memory):
 		super(RQEncoder, self).__init__()
-		rq_type = self._lib.ENC_32 # self.rq_type_val(rq_type, 'enc')
-		# assert rq_type == self.rq_type_val(32, 'enc'), rq_type # XXX: is alignment needed?
-		self._rq_blk = 'uint32_t'
-		self._rq_blk_size = self._ffi.sizeof(self._rq_blk)
 		self._sym_n = symbol_size / self._rq_blk_size
 		self._ctx_init = self._lib.RaptorQ_Enc,\
-			[rq_type, data, len(data), min_subsymbol_size, symbol_size, max_memory]
+			[ self.rq_type_val(self._rq_type, 'enc'), data, len(data),
+				min_subsymbol_size, symbol_size, max_memory ]
 
 	def precompute(self, n_threads=None, background=False):
 		return self.rq_precompute(n_threads or 0, background)
@@ -226,17 +226,14 @@ class RQEncoderBlock(object):
 
 class RQDecoder(RQObject):
 
-	_ctx_func_props = ['symbol_size', 'blocks', 'bytes']
-	_ctx_func_wrap = ['block_size', 'symbols', 'max_repair'] # args: sbn
-	__metaclass__ = _add_lib_wrappers
+	__metaclass__ = _add_lib_wrappers(
+		props=['symbol_size', 'blocks', 'bytes'],
+		funcs=['block_size', 'symbols', 'max_repair'] )
 
 	def __init__(self, oti_common, oti_scheme):
 		super(RQDecoder, self).__init__()
-		rq_type = self._lib.DEC_32 # self.rq_type_val(rq_type, 'dec')
-		# assert rq_type == self.rq_type_val(32, 'dec'), rq_type # XXX: is alignment needed?
-		self._rq_blk = 'uint32_t'
-		self._rq_blk_size = self._ffi.sizeof(self._rq_blk)
-		self._ctx_init = self._lib.RaptorQ_Dec, [rq_type, oti_common, oti_scheme]
+		self._ctx_init = self._lib.RaptorQ_Dec,\
+			[self.rq_type_val(self._rq_type, 'dec'), oti_common, oti_scheme]
 
 	def __enter__(self):
 		super(RQDecoder, self).__enter__()
@@ -255,20 +252,22 @@ class RQDecoder(RQObject):
 			raise RQError( 'Failed to decode symbol'
 				' (id: {}/{}/{}, data: {!r})'.format(sym_id, esi, sbn, sym) )
 
-	def decode(self, partial=False):
-		buff_n = int(math.ceil(self.bytes / float(self._rq_blk_size)))
+	def _block_buff(self, bs):
+		buff_n = int(math.ceil(bs / float(self._rq_blk_size)))
 		buff = self._ffi.new('{}[]'.format(self._rq_blk), buff_n)
 		buff_ptr = self._ffi.new('void **', buff)
+		return buff_n, buff_ptr, lambda n: bytes(self._ffi.buffer(buff, n))
+
+	def decode(self, partial=False):
+		buff_n, buff_ptr, buff_get = self._block_buff(self.bytes)
 		n = self.rq_decode(buff_ptr, buff_n)
 		if not partial and n != buff_n:
-			raise RQError('Failed decoding data (not enough symbols?), decoded bytes: %s', n)
-		return bytes(self._ffi.buffer(buff, n))
+			raise RQError('Failed to decode data - not enough symbols received')
+		return buff_get(n)
 
 	def decode_block(self, sbn, partial=False):
-		buff_n = int(math.ceil(self.block_size(sbn) / float(self._rq_blk_size)))
-		buff = self._ffi.new('{}[]'.format(self._rq_blk), buff_n)
-		buff_ptr = self._ffi.new('void **', buff)
+		buff_n, buff_ptr, buff_get = self._block_buff(self.block_size(sbn))
 		n = self.rq_decode_block(buff_ptr, buff_n, sbn)
 		if not partial and n != buff_n:
-			raise RQError('Failed decoding data (not enough symbols?), decoded bytes: %s', n)
-		return bytes(self._ffi.buffer(buff, n))
+			raise RQError('Failed to decode data - not enough symbols received')
+		return buff_get(n)

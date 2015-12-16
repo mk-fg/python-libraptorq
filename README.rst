@@ -36,7 +36,7 @@ paper`_).
 | Whole input can have up to 256 "source blocks" (encoded independently).
 | Each block can have up to 56.403 symbols.
 | Each symbol can be up to 65.535 (2**16 - 1) bytes long.
-| Which sums up to ~881 GiB max for one input.
+| This sums up to ~881 GiB max for one encoder input.
 
 .. _CFFI: http://cffi.readthedocs.org/
 .. _libRaptorQ: https://github.com/LucaFulchir/libRaptorQ/
@@ -45,13 +45,10 @@ paper`_).
 .. _"Application Layer Forward Error Correction for Mobile Multimedia Broadcasting Case Study" paper:
    https://www.qualcomm.com/media/documents/files/raptor-codes-for-mobile-multimedia-broadcasting-case-study.pdf
 
-
-------
+|
 
 .. contents::
   :backlinks: none
-
-------
 
 
 
@@ -74,7 +71,7 @@ required symbols + X repair symbols) dropped (just for testing purposes) before
 saving them to "setup.py.enc"::
 
   % ./rq --debug encode --repair-symbols-rate 0.5 --drop-rate 0.3 setup.py setup.py.enc
-  2015-12-16 15:59:00 :: DEBUG :: Encoded 629 symbols\
+  2015-12-16 15:59:00 :: DEBUG :: Encoded 1673B into 629 symbols\
     (needed: >419, repair rate: 50%), 189 dropped (30%), 440 left in output
 
 Decode original file back from these::
@@ -92,7 +89,7 @@ should be recoverable from output as long as number of chunks left (in each
 
 Output data ("setup.py.enc" in the example) for the script is JSON-encoded list
 of base64-encoded symbols, as well as some parameters for lib init
-("oti_scheme", "oti_common").
+(``oti_scheme``, ``oti_common``).
 
 See output with --help option for all the other script parameters.
 
@@ -115,7 +112,7 @@ To use as a python2 module::
 
   data_encoded = oti_scheme, oti_common, symbols
 
-"oti_scheme" and "oti_common" are two integers specifying encoder options,
+``oti_scheme`` and ``oti_common`` are two integers specifying encoder options,
 needed to initialize decoder, which can be hard-coded (if constant) on both ends.
 
 ``block.encode_iter()`` can be used without options to produce max possible

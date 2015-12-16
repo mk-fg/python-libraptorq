@@ -113,45 +113,44 @@ def main(args=None, error_func=None):
 			oti_scheme, oti_common = enc.oti_scheme, enc.oti_common
 			enc.precompute(opts.threads, background=False)
 
-			symbols, enc_k, n_drop = dict(), 0, 0
+			symbols, enc_k, n_drop = list(), 0, 0
 			for block in enc:
 				enc_k += block.symbols # not including repair ones
-				block_syms = dict(block.encode_iter(
+				block_syms = list(block.encode_iter(
 					repair_rate=opts.repair_symbols_rate ))
 				if opts.drop_rate > 0:
 					import random
 					n_drop_block = int(round(len(block_syms) * opts.drop_rate, 0))
 					for n in xrange(n_drop_block):
-						k = random.choice(block_syms.keys())
-						del block_syms[k]
+						block_syms[int(random.random() * len(block_syms))] = None
 					n_drop += n_drop_block
-				symbols.update(block_syms)
+				symbols.extend(block_syms)
 
+		log.debug(
+			'Encoded %sB into %s symbols (needed: >%d,'
+				' repair rate: %d%%), %s dropped (%d%%), %s left in output',
+			len(data), len(symbols) + n_drop, enc_k,
+				opts.repair_symbols_rate*100, n_drop, opts.drop_rate*100, len(symbols) )
 		data = json.dumps(
 			dict( oti_scheme=oti_scheme, oti_common=oti_common,
-				symbols=dict((k, b64_encode(v)) for k,v in symbols.viewitems()) ),
+				symbols=list((s[0], b64_encode(s[1])) for s in symbols if s) ),
 			sort_keys=True, indent=2, separators=(',', ': ') )
-		log.debug(
-			'Encoded %s symbols (needed: >%d,'
-				' repair rate: %d%%), %s dropped (%d%%), %s left in output',
-			len(symbols) + n_drop, enc_k,
-				opts.repair_symbols_rate*100, n_drop, opts.drop_rate*100, len(symbols) )
 
 
 	elif opts.cmd == 'decode':
 		data = json.loads(data)
 		n_symbols, n_discarded = len(data['symbols']), 0
 		with RQDecoder(data['oti_common'], data['oti_scheme']) as dec:
-			for sym_id, sym in data['symbols'].viewitems():
+			for sym_id, sym in data['symbols']:
 				sym_id, sym = int(sym_id), b64_decode(sym)
 				try: dec.add_symbol(sym, sym_id)
 				except Exception as err:
 					# log.debug('Failed to add symbol - %s', err) # XXX: not sure if this should happen
 					n_discarded += 1
 			try: data = dec.decode()
-			except RQError:
-				log.error( 'Faled to decode data from'
-					' %s symbols (total, discarded: %s)', n_symbols, n_discarded )
+			except RQError as err:
+				log.error( 'Faled to decode data from %s symbols'
+					' (total, discarded: %s) - %s', n_symbols, n_discarded, err )
 				data = None
 			else:
 				log.debug( 'Decoded %sB of data from %s symbols'
