@@ -128,38 +128,45 @@ def main(args=None, error_func=None):
 					n_drop += n_drop_block
 				symbols.extend(block_syms)
 
-		log.debug(
-			'Encoded %s B into %s symbols (needed: >%s, repair rate:'
-				' %d%%), %s dropped (%d%%), %s left in output (%s B without ids)',
-			num_fmt(len(data)), num_fmt(len(symbols) + n_drop),
-				num_fmt(enc_k), opts.repair_symbols_rate*100,
-				num_fmt(n_drop), opts.drop_rate*100, num_fmt(len(symbols)),
-				num_fmt(len(''.join(s[1] for s in symbols if s))) )
+		symbols = filter(None, symbols)
+		if log.isEnabledFor(logging.DEBUG):
+			log.debug(
+				'Encoded %s B into %s symbols (needed: >%s, repair rate:'
+					' %d%%), %s dropped (%d%%), %s left in output (%s B without ids)',
+				num_fmt(len(data)), num_fmt(len(symbols) + n_drop),
+					num_fmt(enc_k), opts.repair_symbols_rate*100,
+					num_fmt(n_drop), opts.drop_rate*100, num_fmt(len(symbols)),
+					num_fmt(sum(len(s[1]) for s in symbols)) )
 		data = json.dumps(
 			dict( oti_scheme=oti_scheme, oti_common=oti_common,
-				symbols=list((s[0], b64_encode(s[1])) for s in symbols if s) ),
+				symbols=list((s[0], b64_encode(s[1])) for s in symbols) ),
 			sort_keys=True, indent=2, separators=(',', ': ') )
 
 
 	elif opts.cmd == 'decode':
 		data = json.loads(data)
-		n_symbols, n_discarded = len(data['symbols']), 0
+		n_syms, n_syms_total, n_sym_bytes = 0, len(data['symbols']), 0
 		with RQDecoder(data['oti_common'], data['oti_scheme']) as dec:
+			err = 'no symbols available'
 			for sym_id, sym in data['symbols']:
 				sym_id, sym = int(sym_id), b64_decode(sym)
 				try: dec.add_symbol(sym, sym_id)
-				except Exception as err:
-					# log.debug('Failed to add symbol - %s', err) # XXX: not sure if this should happen
-					n_discarded += 1
-			try: data = dec.decode()
-			except RQError as err:
-				log.error( 'Faled to decode data from %s symbols'
-					' (total, discarded: %s) - %s', n_symbols, n_discarded, err )
-				data = None
+				except Exception as err: continue
+				n_syms, n_sym_bytes = n_syms + 1, n_sym_bytes + len(sym)
+				try: data = dec.decode()
+				except RQError as err: pass
+				else:
+					if log.isEnabledFor(logging.DEBUG):
+						log.debug(
+							'Decoded %s B of data from %s processed'
+								' symbols (%s B without ids, symbols total: %s)',
+							num_fmt(len(data)), num_fmt(n_syms),
+								num_fmt(n_sym_bytes), num_fmt(n_syms_total) )
+					break
 			else:
-				log.debug(
-					'Decoded %s B of data from %s symbols (total, discarded: %s)',
-					num_fmt(len(data)), num_fmt(n_symbols), num_fmt(n_discarded) )
+				log.error( 'Faled to decode data from %s'
+					' total symbols (processed: %s) - %s', n_syms_total, n_syms, err )
+				data = None
 
 
 	else: raise NotImplementedError(opts.cmd)

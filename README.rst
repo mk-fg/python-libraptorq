@@ -73,13 +73,14 @@ required symbols + X repair symbols) dropped (just for testing purposes) before
 saving them to "setup.py.enc"::
 
   % ./rq --debug encode --repair-symbols-rate 0.5 --drop-rate 0.3 setup.py setup.py.enc
-  2015-12-16 22:05:51 :: DEBUG :: Encoded 1,723 B into 849 symbols (needed: >431,\
-    repair rate: 50%), 198 dropped (30%), 651 left in output (7,728 B without ids)
+  2015-12-17 16:12:13 :: DEBUG :: Encoded 1,723 B into 674 symbols\
+    (needed: >431, repair rate: 50%), 198 dropped (30%), 476 left in output (7,616 B without ids)
 
 Decode original file back from these::
 
   % ./rq --debug decode setup.py.enc setup.py.dec
-  2015-12-16 22:05:51 :: DEBUG :: Decoded 1,723 B of data from 476 symbols (total, discarded: 0)
+  2015-12-17 16:12:13 :: DEBUG :: Decoded 1,723 B of data\
+    from 431 processed symbols (6,896 B without ids, symbols total: 476)
 
   % sha256sum -b setup.py{,.dec}
   0a19b84ca98562476f79d55f19ac853ea49e567205dcc9139ba986e8572f9681 *setup.py
@@ -200,15 +201,12 @@ Random Notes
   with compilation and the need for compiler, see `CFFI docs on the subject`_
   for more info on what it means.
 
-* When testing decoding of some encoded data, noticed that libRaptorQ
-  *sometimes* returns errors for ``add_symbol()`` calls, essentially discarding
-  some valid symbols.
+* When decoding, libRaptorQ can raise errors for ``add_symbol()`` calls, when
+  source block is already decoded and that extra symbol is not needed.
 
-  Not sure if that's supposed to happen (again, lack of familiarity with the
-  algo), but stuff usually can be decoded already when this starts to happen.
-
-* libRaptorQ allows to specify "rq_type" parameter, which is hard-coded to
-  ENC_32/DEC_32 in the module for now, for simplicity.
+* libRaptorQ allows to specify "rq_type" parameter for internal data alignment
+  size (C++ iterator element), which is hard-coded to ENC_32/DEC_32 in the
+  module, for simplicity.
 
 * Lack of Python 3.X compatibility is due to me not using it at all (yet?), so
   don't need it, have nothing against it in principle.
