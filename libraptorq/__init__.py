@@ -273,4 +273,4 @@ class RQDecoder(RQObject):
 		n = self.rq_decode_block(buff_ptr, buff_n, sbn)
 		if not partial and n != buff_n:
 			raise RQError('Failed to decode data - not enough symbols received')
-		return buff_get(n)
+		return buff_get(n * self._rq_blk_size)
