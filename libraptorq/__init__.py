@@ -177,8 +177,10 @@ class RQEncoder(RQObject):
 	def __init__(self, data, min_subsymbol_size, symbol_size, max_memory):
 		super(RQEncoder, self).__init__()
 		self._sym_n = symbol_size / self._rq_blk_size
+		assert len(data) % self._rq_blk_size == 0, len(data)
+		rq_len = len(data) // self._rq_blk_size
 		self._ctx_init = self._lib.RaptorQ_Enc,\
-			[ self.rq_type_val(self._rq_type, 'enc'), data, len(data),
+			[ self.rq_type_val(self._rq_type, 'enc'), data, rq_len,
 				min_subsymbol_size, symbol_size, max_memory ]
 
 	def precompute(self, n_threads=None, background=False):
@@ -263,7 +265,7 @@ class RQDecoder(RQObject):
 		n = self.rq_decode(buff_ptr, buff_n)
 		if not partial and n != buff_n:
 			raise RQError('Failed to decode data - not enough symbols received')
-		return buff_get(n)
+		return buff_get(n * self._rq_blk_size)
 
 	def decode_block(self, sbn, partial=False):
 		buff_n, buff_ptr, buff_get = self._block_buff(self.block_size(sbn))
