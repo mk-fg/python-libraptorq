@@ -117,6 +117,8 @@ class RQObject(object):
 	'''
 	_ctx = None
 
+	data_size_div, _rq_type, _rq_blk = 4, 32, 'uint32_t'
+
 	def __init__(self):
 		self._ffi = FFI()
 		self._ffi.cdef(self._cdefs)
@@ -125,8 +127,7 @@ class RQObject(object):
 		self.rq_types = ( ['NONE', None]
 			+ list('ENC_{}'.format(2**n) for n in xrange(3, 7))
 			+ list('DEC_{}'.format(2**n) for n in xrange(3, 7)) )
-		self._rq_type, self._rq_blk = 32, 'uint32_t'
-		self._rq_blk_size = self._ffi.sizeof(self._rq_blk)
+		self._rq_blk_size = data_size_div
 
 	def rq_type_val(self, v, pre):
 		if isinstance(v, int) or v.isdigit(): v = '{}_{}'.format(pre, v).upper()

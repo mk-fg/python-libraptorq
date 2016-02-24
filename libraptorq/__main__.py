@@ -110,6 +110,8 @@ def main(args=None, error_func=None):
 
 
 	if opts.cmd == 'encode':
+		data_len = len(data)
+		if data_len % 4: data += '\0' * (4 - data_len % 4)
 		with RQEncoder( data,
 				opts.min_subsymbol_size, opts.symbol_size, opts.max_memory ) as enc:
 			oti_scheme, oti_common = enc.oti_scheme, enc.oti_common
@@ -138,7 +140,8 @@ def main(args=None, error_func=None):
 					num_fmt(n_drop), opts.drop_rate*100, num_fmt(len(symbols)),
 					num_fmt(sum(len(s[1]) for s in symbols)) )
 		data = json.dumps(
-			dict( oti_scheme=oti_scheme, oti_common=oti_common,
+			dict( data_bytes=data_len,
+				oti_scheme=oti_scheme, oti_common=oti_common,
 				symbols=list((s[0], b64_encode(s[1])) for s in symbols) ),
 			sort_keys=True, indent=2, separators=(',', ': ') )
 
@@ -146,6 +149,7 @@ def main(args=None, error_func=None):
 	elif opts.cmd == 'decode':
 		data = json.loads(data)
 		n_syms, n_syms_total, n_sym_bytes = 0, len(data['symbols']), 0
+		data_len = data['data_bytes']
 		with RQDecoder(data['oti_common'], data['oti_scheme']) as dec:
 			err = 'no symbols available'
 			for sym_id, sym in data['symbols']:
@@ -153,7 +157,7 @@ def main(args=None, error_func=None):
 				try: dec.add_symbol(sym, sym_id)
 				except Exception as err: continue
 				n_syms, n_sym_bytes = n_syms + 1, n_sym_bytes + len(sym)
-				try: data = dec.decode()
+				try: data = dec.decode()[:data_len]
 				except RQError as err: pass
 				else:
 					if log.isEnabledFor(logging.DEBUG):

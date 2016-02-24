@@ -38,7 +38,8 @@ paper`_).
 | Each symbol can be up to 65.535 (2**16 - 1) bytes long.
 | This sums up to ~881 GiB max for one encoder input.
 
-Encoded data will always be at least 4x larger in size than the original.
+Encoded data will be roughly same size as original plus the "repair symbols",
+i.e. almost no size overhead, except for what is intentionally generated.
 
 .. _CFFI: http://cffi.readthedocs.org/
 .. _libRaptorQ: https://github.com/LucaFulchir/libRaptorQ/
@@ -73,18 +74,18 @@ required symbols + X repair symbols) dropped (just for testing purposes) before
 saving them to "setup.py.enc"::
 
   % ./rq --debug encode --repair-symbols-rate 0.5 --drop-rate 0.3 setup.py setup.py.enc
-  2015-12-17 16:12:13 :: DEBUG :: Encoded 1,723 B into 674 symbols\
-    (needed: >431, repair rate: 50%), 198 dropped (30%), 476 left in output (7,616 B without ids)
+  2016-02-25 03:21:09 :: DEBUG :: Encoded 1,724 B into 168 symbols\
+    (needed: >108, repair rate: 50%), 48 dropped (30%), 120 left in output (1,920 B without ids)
 
 Decode original file back from these::
 
   % ./rq --debug decode setup.py.enc setup.py.dec
-  2015-12-17 16:12:13 :: DEBUG :: Decoded 1,723 B of data\
-    from 431 processed symbols (6,896 B without ids, symbols total: 476)
+  2016-02-25 03:21:34 :: DEBUG :: Decoded 1,721 B of data\
+    from 108 processed symbols (1,728 B without ids, symbols total: 120)
 
   % sha256sum -b setup.py{,.dec}
-  0a19b84ca98562476f79d55f19ac853ea49e567205dcc9139ba986e8572f9681 *setup.py
-  0a19b84ca98562476f79d55f19ac853ea49e567205dcc9139ba986e8572f9681 *setup.py.dec
+  36c50348459b51821a2715b0f5c4ef08647d66f77a29913121af4f0f4dfef454 *setup.py
+  36c50348459b51821a2715b0f5c4ef08647d66f77a29913121af4f0f4dfef454 *setup.py.dec
 
 No matter which chunks are dropped (get picked by ``random.choice``), file
 should be recoverable from output as long as number of chunks left (in each
@@ -92,7 +93,7 @@ should be recoverable from output as long as number of chunks left (in each
 
 Output data ("setup.py.enc" in the example) for the script is JSON-encoded list
 of base64-encoded symbols, as well as some parameters for lib init
-(``oti_scheme``, ``oti_common``).
+(``oti_scheme``, ``oti_common``) and input data length.
 
 See output with --help option for all the other script parameters.
 
@@ -105,6 +106,10 @@ To use as a python2 module::
 
   data = 'some input string' * 500
 
+  # Data size must be divisible by RQEncoder.data_size_div
+  data_len, n = len(data), RQEncoder.data_size_div
+  if data_len % n: data += '\0' * (n - data_len % n)
+
   with RQEncoder(data, min_subsymbol_size=4, symbol_size=16, max_memory=200) as enc:
 
     symbols = dict()
@@ -113,10 +118,12 @@ To use as a python2 module::
     for block in enc:
       symbols.update(block.encode_iter(repair_rate=0))
 
-  data_encoded = oti_scheme, oti_common, symbols
+  data_encoded = data_len, oti_scheme, oti_common, symbols
 
 ``oti_scheme`` and ``oti_common`` are two integers specifying encoder options,
 needed to initialize decoder, which can be hard-coded (if constant) on both ends.
+
+Data length must be divisible by
 
 ``block.encode_iter()`` can be used without options to produce max possible
 amount of symbols, up to ``block.symbols + block.max_repair``.
@@ -126,12 +133,12 @@ For decoding (reverse operation)::
 
   from libraptorq import RQDecoder
 
-  oti_scheme, oti_common, symbols = data_encoded
+  data_len, oti_scheme, oti_common, symbols = data_encoded
 
   with RQDecoder(oti_scheme, oti_common) as dec:
     for sym_id, sym in symbols.viewitems(): dec.add_symbol(sym, sym_id)
 
-    data = dec.decode()
+    data = dec.decode()[:data_len]
 
 Note that in practice, e.g. when transmitting each symbol in a udp packet, one'd
 want to send something like ``sym_id || sym_data || checksum``, and keep sending
