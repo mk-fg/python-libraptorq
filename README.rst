@@ -8,6 +8,10 @@ Forward Error Correction codes, as described in RFC6330_.
 the use of this technology, which might be important for any high-profile and
 commercial projects, especially in US and Canada.
 
+**Warning**: at least as of 2015-02-25, libRaptorQ seem to have some race
+conditions, which manifest for larger (>400 KiB) input data chunks, resulting in
+crashes. See "Random Notes" section below for more info.
+
 Quoting `wikipedia on Raptor code`_:
 
   Raptor codes, as with fountain codes in general, encode a given message
@@ -203,6 +207,14 @@ installation, if that's the only thing you need there.
 
 Random Notes
 ------------
+
+* As of 2015-02-25, encoding chunks >400 KiB seem to cause race condition
+  between RaptorQ_precompute function and RaptorQ_blocks.
+
+  Inserting delay (e.g. ``time.sleep()``) between these calls seem to avoid it,
+  but that's definitely not the right way to fix it.
+
+  Similar race seem to be happening on decoding as well.
 
 * libRaptorQ is currently used via CFFI in "ABI Mode" to avoid any extra hassle
   with compilation and the need for compiler, see `CFFI docs on the subject`_
