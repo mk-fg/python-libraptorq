@@ -127,7 +127,7 @@ class RQObject(object):
 		self.rq_types = ( ['NONE', None]
 			+ list('ENC_{}'.format(2**n) for n in xrange(3, 7))
 			+ list('DEC_{}'.format(2**n) for n in xrange(3, 7)) )
-		self._rq_blk_size = data_size_div
+		self._rq_blk_size = self.data_size_div
 
 	def rq_type_val(self, v, pre):
 		if isinstance(v, int) or v.isdigit(): v = '{}_{}'.format(pre, v).upper()
