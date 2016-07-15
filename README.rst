@@ -46,7 +46,7 @@ Encoded data will be roughly same size as original plus the "repair symbols",
 i.e. almost no size overhead, except for what is intentionally generated.
 
 .. _CFFI: http://cffi.readthedocs.org/
-.. _libRaptorQ: https://github.com/LucaFulchir/libRaptorQ/
+.. _libRaptorQ: https://www.fenrirproject.org/Luker/libRaptorQ/wikis/home
 .. _RFC6330: https://tools.ietf.org/html/rfc6330
 .. _wikipedia on Raptor code: https://en.wikipedia.org/wiki/Raptor_code
 .. _"Application Layer Forward Error Correction for Mobile Multimedia Broadcasting Case Study" paper:
