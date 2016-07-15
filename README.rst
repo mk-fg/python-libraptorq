@@ -224,8 +224,8 @@ Random Notes
   source block is already decoded and that extra symbol is not needed.
 
 * libRaptorQ allows to specify "rq_type" parameter for internal data alignment
-  size (C++ iterator element), which is hard-coded to ENC_32/DEC_32 in the
-  module, for simplicity.
+  size (C++ iterator element), which is hard-coded to RQ_ENC_32/RQ_DEC_32
+  in the module, for simplicity.
 
 * Lack of Python 3.X compatibility is due to me not using it at all (yet?), so
   don't need it, have nothing against it in principle.
