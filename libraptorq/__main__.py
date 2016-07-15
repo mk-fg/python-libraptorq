@@ -135,7 +135,7 @@ def main(args=None, error_func=None):
 			log.debug(
 				'Encoded %s B into %s symbols (needed: >%s, repair rate:'
 					' %d%%), %s dropped (%d%%), %s left in output (%s B without ids)',
-				num_fmt(len(data)), num_fmt(len(symbols) + n_drop),
+				num_fmt(data_len), num_fmt(len(symbols) + n_drop),
 					num_fmt(enc_k), opts.repair_symbols_rate*100,
 					num_fmt(n_drop), opts.drop_rate*100, num_fmt(len(symbols)),
 					num_fmt(sum(len(s[1]) for s in symbols)) )

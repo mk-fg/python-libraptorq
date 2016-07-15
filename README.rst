@@ -86,7 +86,7 @@ required symbols + X repair symbols) dropped (just for testing purposes) before
 saving them to "setup.py.enc"::
 
   % ./rq --debug encode --repair-symbols-rate 0.5 --drop-rate 0.3 setup.py setup.py.enc
-  2016-02-25 03:21:09 :: DEBUG :: Encoded 1,724 B into 168 symbols\
+  2016-02-25 03:21:09 :: DEBUG :: Encoded 1,721 B into 168 symbols\
     (needed: >108, repair rate: 50%), 48 dropped (30%), 120 left in output (1,920 B without ids)
 
 Decode original file back from these::
