@@ -41,6 +41,7 @@ blocks (see `"Stopping a Rapid Tornado with a Puff" paper`_ for more details).
 | Each block can have up to 56.403 symbols.
 | Each symbol can be up to 65.535 (2**16 - 1) bytes long.
 | This sums up to ~881 GiB max for one encoder input.
+|
 
 Encoded data will be roughly same size as original plus the "repair symbols",
 i.e. almost no size overhead, except for what is intentionally generated.
@@ -208,14 +209,6 @@ installation, if that's the only thing you need there.
 
 Random Notes
 ------------
-
-* As of 2015-02-25, encoding chunks >400 KiB seem to cause race condition
-  between RaptorQ_precompute function and RaptorQ_blocks.
-
-  Inserting delay (e.g. ``time.sleep()``) between these calls seem to avoid it,
-  but that's definitely not the right way to fix it.
-
-  Similar race seem to be happening on decoding as well.
 
 * libRaptorQ is currently used via CFFI in "ABI Mode" to avoid any extra hassle
   with compilation and the need for compiler, see `CFFI docs on the subject`_
