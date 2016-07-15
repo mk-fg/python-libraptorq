@@ -8,6 +8,20 @@ Forward Error Correction codes, as described in RFC6330_.
 the use of this technology, which might be important for any high-profile and
 commercial projects, especially in US and Canada.
 
+|
+
+.. contents::
+  :backlinks: none
+
+.. _CFFI: http://cffi.readthedocs.org/
+.. _libRaptorQ: https://www.fenrirproject.org/Luker/libRaptorQ/wikis/home
+.. _RFC6330: https://tools.ietf.org/html/rfc6330
+
+
+
+General info
+------------
+
 Quoting `wikipedia on Raptor code`_:
 
   Raptor codes, as with fountain codes in general, encode a given message
@@ -46,18 +60,10 @@ blocks (see `"Stopping a Rapid Tornado with a Puff" paper`_ for more details).
 Encoded data will be roughly same size as original plus the "repair symbols",
 i.e. almost no size overhead, except for what is intentionally generated.
 
-.. _CFFI: http://cffi.readthedocs.org/
-.. _libRaptorQ: https://www.fenrirproject.org/Luker/libRaptorQ/wikis/home
-.. _RFC6330: https://tools.ietf.org/html/rfc6330
 .. _wikipedia on Raptor code: https://en.wikipedia.org/wiki/Raptor_code
 .. _"Application Layer Forward Error Correction for Mobile Multimedia Broadcasting Case Study" paper:
    https://www.qualcomm.com/media/documents/files/raptor-codes-for-mobile-multimedia-broadcasting-case-study.pdf
 .. _"Stopping a Rapid Tornado with a Puff" paper: http://jmsalopes.com/pubs/sp.pdf
-
-|
-
-.. contents::
-  :backlinks: none
 
 
 
@@ -155,7 +161,7 @@ then start streaming the next block in similar fashion.
 See `__main__.py
 <https://github.com/mk-fg/python-libraptorq/blob/master/libraptorq/__main__.py>`_
 file (cli script) for an extended example, and libRaptorQ_ docs for info on its
-API, which this module wraps around.
+C API, which this module wraps around.
 
 
 
@@ -165,7 +171,7 @@ Installation
 It's a regular package for Python 2.7 (not 3.X).
 
 It uses and needs CFFI_ (can/should be installed by pip_) and libRaptorQ_
-installed on the system.
+installed (as libRaptorQ.so) on the system.
 
 Using pip_ is the best way::
 
