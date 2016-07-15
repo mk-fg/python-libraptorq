@@ -8,10 +8,6 @@ Forward Error Correction codes, as described in RFC6330_.
 the use of this technology, which might be important for any high-profile and
 commercial projects, especially in US and Canada.
 
-**Warning**: at least as of 2015-02-25, libRaptorQ seem to have some race
-conditions, which manifest for larger (>400 KiB) input data chunks, resulting in
-crashes. See "Random Notes" section below for more info.
-
 Quoting `wikipedia on Raptor code`_:
 
   Raptor codes, as with fountain codes in general, encode a given message
@@ -32,10 +28,14 @@ And RFC6330_:
   is sufficient; in rare cases, a set of cardinality slightly more than the
   number of source symbols is required.
 
-In practice this means that source data block of size 1 MiB (for example) can be
-recovered from any 1.002 MiB of the received symbols for it (from `"Application
-Layer Forward Error Correction for Mobile Multimedia Broadcasting Case Study"
-paper`_).
+In practice this means that source data block of size 1 MiB (for example) can
+(with very high probability) be recovered from any 1.002 MiB of the received
+symbols for it (from `"Application Layer Forward Error Correction for Mobile
+Multimedia Broadcasting Case Study" paper`_).
+
+Note that being a probablilistic algorithm, RaptorQ can have highly-improbable
+pathological cases and be exploited through these e.g. by dropping specific data
+blocks (see `"Stopping a Rapid Tornado with a Puff" paper`_ for more details).
 
 | Whole input can have up to 256 "source blocks" (encoded independently).
 | Each block can have up to 56.403 symbols.
@@ -51,6 +51,7 @@ i.e. almost no size overhead, except for what is intentionally generated.
 .. _wikipedia on Raptor code: https://en.wikipedia.org/wiki/Raptor_code
 .. _"Application Layer Forward Error Correction for Mobile Multimedia Broadcasting Case Study" paper:
    https://www.qualcomm.com/media/documents/files/raptor-codes-for-mobile-multimedia-broadcasting-case-study.pdf
+.. _"Stopping a Rapid Tornado with a Puff" paper: http://jmsalopes.com/pubs/sp.pdf
 
 |
 
