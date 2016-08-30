@@ -3,7 +3,7 @@ from __future__ import print_function
 
 import itertools as it, operator as op, functools as ft
 from os.path import dirname, basename, exists, isdir, join, abspath
-import os, sys, types, math, json, base64
+import os, sys, types, math, json, base64, hashlib, logging
 
 
 try: import libraptorq
@@ -36,6 +36,86 @@ b64_decode = lambda s:\
 		if '-' in s or '_' in s else bytes(s).decode('base64')
 
 num_fmt = lambda n: '{:,}'.format(n)
+
+
+class EncDecFailure(Exception): pass
+
+
+def encode(opts, data):
+	data_len = len(data)
+	if data_len % 4: data += '\0' * (4 - data_len % 4)
+	with RQEncoder( data,
+			opts.min_subsymbol_size, opts.symbol_size, opts.max_memory ) as enc:
+		oti_scheme, oti_common = enc.oti_scheme, enc.oti_common
+		enc.precompute(opts.threads, background=False)
+
+		symbols, enc_k, n_drop = list(), 0, 0
+		for block in enc:
+			enc_k += block.symbols # not including repair ones
+			block_syms = list(block.encode_iter(
+				repair_rate=opts.repair_symbols_rate ))
+			if opts.drop_rate > 0:
+				import random
+				n_drop_block = int(round(len(block_syms) * opts.drop_rate, 0))
+				for n in xrange(n_drop_block):
+					block_syms[int(random.random() * len(block_syms))] = None
+				n_drop += n_drop_block
+			symbols.extend(block_syms)
+
+	symbols = filter(None, symbols)
+	if log.isEnabledFor(logging.DEBUG):
+		log.debug(
+			'Encoded %s B into %s symbols (needed: >%s, repair rate:'
+				' %d%%), %s dropped (%d%%), %s left in output (%s B without ids)',
+			num_fmt(data_len), num_fmt(len(symbols) + n_drop),
+				num_fmt(enc_k), opts.repair_symbols_rate*100,
+				num_fmt(n_drop), opts.drop_rate*100, num_fmt(len(symbols)),
+				num_fmt(sum(len(s[1]) for s in symbols)) )
+
+	return dict( data_bytes=data_len,
+		oti_scheme=oti_scheme, oti_common=oti_common,
+		symbols=list((s[0], b64_encode(s[1])) for s in symbols),
+		checksums=dict(sha256=b64_encode(hashlib.sha256(data).digest())) )
+
+
+def decode(opts, data):
+	data_dec = _decode(opts, data)
+	if data['data_bytes'] != len(data_dec):
+		raise EncDecFailure(
+			'Data length mismatch - {} B encoded vs {} B decoded'
+			.format(num_fmt(data['data_bytes']), num_fmt(len(data_dec))) )
+	data_chk = data.get('checksums', dict())
+	for k, v in data_chk.viewitems():
+		v = b64_decode(v)
+		if getattr(hashlib, k)(data_dec).digest() != v:
+			raise EncDecFailure('Data checksum ({}) mismatch'.format(k))
+	return data_dec
+
+def _decode(opts, data):
+	n_syms, n_syms_total, n_sym_bytes = 0, len(data['symbols']), 0
+	if ( not data['symbols'] # zero-input/zero-output case
+		and data['oti_common'] == data['oti_scheme'] == 0 ): return ''
+	with RQDecoder(data['oti_common'], data['oti_scheme']) as dec:
+		err = 'no symbols available'
+		for sym_id, sym in data['symbols']:
+			sym_id, sym = int(sym_id), b64_decode(sym)
+			try: dec.add_symbol(sym, sym_id)
+			except RQError as err: continue
+			n_syms, n_sym_bytes = n_syms + 1, n_sym_bytes + len(sym)
+			try: data = dec.decode()
+			except RQError as err: pass
+			else:
+				if log.isEnabledFor(logging.DEBUG):
+					log.debug(
+						'Decoded %s B of data from %s processed'
+							' symbols (%s B without ids, symbols total: %s)',
+						num_fmt(len(data)), num_fmt(n_syms),
+							num_fmt(n_sym_bytes), num_fmt(n_syms_total) )
+				break
+		else:
+			raise EncDecFailure(( 'Faled to decode data from {}'
+				' total symbols (processed: {}) - {}' ).format(n_syms_total, n_syms, err))
+	return data
 
 
 def main(args=None, error_func=None):
@@ -97,7 +177,6 @@ def main(args=None, error_func=None):
 	opts = parser.parse_args(sys.argv[1:] if args is None else args)
 
 	global log
-	import logging
 	logging.basicConfig(
 		format='%(asctime)s :: %(levelname)s :: %(message)s',
 		datefmt='%Y-%m-%d %H:%M:%S',
@@ -108,75 +187,18 @@ def main(args=None, error_func=None):
 	try: data = src.read()
 	finally: src.close()
 
+	try:
+		if opts.cmd == 'encode':
+			data = json.dumps( encode(opts, data),
+				sort_keys=True, indent=2, separators=(',', ': ') )
+		elif opts.cmd == 'decode':
+			data = decode(opts, json.loads(data))
+		else: raise NotImplementedError(opts.cmd)
+	except EncDecFailure as err:
+		log.error('Operation failed - %s', err)
+		data = None
 
-	if opts.cmd == 'encode':
-		data_len = len(data)
-		if data_len % 4: data += '\0' * (4 - data_len % 4)
-		with RQEncoder( data,
-				opts.min_subsymbol_size, opts.symbol_size, opts.max_memory ) as enc:
-			oti_scheme, oti_common = enc.oti_scheme, enc.oti_common
-			enc.precompute(opts.threads, background=False)
-
-			symbols, enc_k, n_drop = list(), 0, 0
-			for block in enc:
-				enc_k += block.symbols # not including repair ones
-				block_syms = list(block.encode_iter(
-					repair_rate=opts.repair_symbols_rate ))
-				if opts.drop_rate > 0:
-					import random
-					n_drop_block = int(round(len(block_syms) * opts.drop_rate, 0))
-					for n in xrange(n_drop_block):
-						block_syms[int(random.random() * len(block_syms))] = None
-					n_drop += n_drop_block
-				symbols.extend(block_syms)
-
-		symbols = filter(None, symbols)
-		if log.isEnabledFor(logging.DEBUG):
-			log.debug(
-				'Encoded %s B into %s symbols (needed: >%s, repair rate:'
-					' %d%%), %s dropped (%d%%), %s left in output (%s B without ids)',
-				num_fmt(data_len), num_fmt(len(symbols) + n_drop),
-					num_fmt(enc_k), opts.repair_symbols_rate*100,
-					num_fmt(n_drop), opts.drop_rate*100, num_fmt(len(symbols)),
-					num_fmt(sum(len(s[1]) for s in symbols)) )
-		data = json.dumps(
-			dict( data_bytes=data_len,
-				oti_scheme=oti_scheme, oti_common=oti_common,
-				symbols=list((s[0], b64_encode(s[1])) for s in symbols) ),
-			sort_keys=True, indent=2, separators=(',', ': ') )
-
-
-	elif opts.cmd == 'decode':
-		data = json.loads(data)
-		n_syms, n_syms_total, n_sym_bytes = 0, len(data['symbols']), 0
-		data_len = data['data_bytes']
-		with RQDecoder(data['oti_common'], data['oti_scheme']) as dec:
-			err = 'no symbols available'
-			for sym_id, sym in data['symbols']:
-				sym_id, sym = int(sym_id), b64_decode(sym)
-				try: dec.add_symbol(sym, sym_id)
-				except Exception as err: continue
-				n_syms, n_sym_bytes = n_syms + 1, n_sym_bytes + len(sym)
-				try: data = dec.decode()[:data_len]
-				except RQError as err: pass
-				else:
-					if log.isEnabledFor(logging.DEBUG):
-						log.debug(
-							'Decoded %s B of data from %s processed'
-								' symbols (%s B without ids, symbols total: %s)',
-							num_fmt(len(data)), num_fmt(n_syms),
-								num_fmt(n_sym_bytes), num_fmt(n_syms_total) )
-					break
-			else:
-				log.error( 'Faled to decode data from %s'
-					' total symbols (processed: %s) - %s', n_syms_total, n_syms, err )
-				data = None
-
-
-	else: raise NotImplementedError(opts.cmd)
-
-
-	if data:
+	if data is not None:
 		dst = sys.stdout if not opts.path_dst else open(opts.path_dst, 'wb')
 		try: dst.write(data)
 		finally: dst.close()
