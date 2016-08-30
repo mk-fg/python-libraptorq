@@ -140,8 +140,6 @@ To use as a python2 module::
 ``oti_scheme`` and ``oti_common`` are two integers specifying encoder options,
 needed to initialize decoder, which can be hard-coded (if constant) on both ends.
 
-Data length must be divisible by
-
 ``block.encode_iter()`` can be used without options to produce max possible
 amount of symbols, up to ``block.symbols + block.max_repair``.
 Above example only produces K symbols - min amount required.
