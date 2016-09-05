@@ -3,7 +3,7 @@ from __future__ import print_function
 
 import itertools as it, operator as op, functools as ft
 from os.path import dirname, basename, exists, isdir, join, abspath
-import os, sys, types, math, json, base64, hashlib, logging
+import os, sys, types, math, json, base64, hashlib, logging, time
 
 
 try: import libraptorq
@@ -37,17 +37,31 @@ b64_decode = lambda s:\
 
 num_fmt = lambda n: '{:,}'.format(n)
 
+def _timer_iter():
+	ts0 = time.time()
+	while True:
+		ts = time.time()
+		ts_diff, ts0 = ts - ts0, ts
+		yield ts_diff
+
+def timer_iter():
+	timer = _timer_iter()
+	next(timer)
+	return timer
+
 
 class EncDecFailure(Exception): pass
-
 
 def encode(opts, data):
 	data_len = len(data)
 	if data_len % 4: data += '\0' * (4 - data_len % 4)
+	timer = timer_iter()
 	with RQEncoder( data,
 			opts.min_subsymbol_size, opts.symbol_size, opts.max_memory ) as enc:
+		log.debug('Initialized RQEncoder (%.3fs)...', next(timer))
 		oti_scheme, oti_common = enc.oti_scheme, enc.oti_common
 		enc.precompute(opts.threads, background=False)
+		log.debug('Precomputed blocks (%.3fs)...', next(timer))
 
 		symbols, enc_k, n_drop = list(), 0, 0
 		for block in enc:
@@ -61,6 +75,8 @@ def encode(opts, data):
 					block_syms[int(random.random() * len(block_syms))] = None
 				n_drop += n_drop_block
 			symbols.extend(block_syms)
+		log.debug('Finished encoding symbols (%.3fs)...', next(timer))
+	log.debug('Closed RQEncoder (%.3fs)...', next(timer))
 
 	symbols = filter(None, symbols)
 	if log.isEnabledFor(logging.DEBUG):
@@ -95,7 +111,9 @@ def _decode(opts, data):
 	n_syms, n_syms_total, n_sym_bytes = 0, len(data['symbols']), 0
 	if ( not data['symbols'] # zero-input/zero-output case
 		and data['oti_common'] == data['oti_scheme'] == 0 ): return ''
+	timer = timer_iter()
 	with RQDecoder(data['oti_common'], data['oti_scheme']) as dec:
+		log.debug('Initialized RQDecoder (%.3fs)...', next(timer))
 		err = 'no symbols available'
 		for sym_id, sym in data['symbols']:
 			sym_id, sym = int(sym_id), b64_decode(sym)
@@ -105,16 +123,18 @@ def _decode(opts, data):
 			try: data = dec.decode()
 			except RQError as err: pass
 			else:
-				if log.isEnabledFor(logging.DEBUG):
-					log.debug(
-						'Decoded %s B of data from %s processed'
-							' symbols (%s B without ids, symbols total: %s)',
-						num_fmt(len(data)), num_fmt(n_syms),
-							num_fmt(n_sym_bytes), num_fmt(n_syms_total) )
+				log.debug('Decoded enough symbols to recover data (%.3fs)...', next(timer))
 				break
 		else:
 			raise EncDecFailure(( 'Faled to decode data from {}'
 				' total symbols (processed: {}) - {}' ).format(n_syms_total, n_syms, err))
+	log.debug('Closed RQDecoder (%.3fs)...', next(timer))
+	if log.isEnabledFor(logging.DEBUG):
+		log.debug(
+			'Decoded %s B of data from %s processed'
+				' symbols (%s B without ids, symbols total: %s)',
+			num_fmt(len(data)), num_fmt(n_syms),
+				num_fmt(n_sym_bytes), num_fmt(n_syms_total) )
 	return data
 
 
@@ -196,7 +216,7 @@ def main(args=None, error_func=None):
 		else: raise NotImplementedError(opts.cmd)
 	except EncDecFailure as err:
 		log.error('Operation failed - %s', err)
-		data = None
+		return 1
 
 	if data is not None:
 		dst = sys.stdout if not opts.path_dst else open(opts.path_dst, 'wb')
