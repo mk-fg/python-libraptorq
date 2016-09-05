@@ -53,7 +53,7 @@ def timer_iter():
 class EncDecFailure(Exception): pass
 
 def encode(opts, data):
-	data_len = len(data)
+	data_len, data_sha256 = len(data), hashlib.sha256(data).digest()
 	if data_len % 4: data += '\0' * (4 - data_len % 4)
 	timer = timer_iter()
 	with RQEncoder( data,
@@ -92,7 +92,7 @@ def encode(opts, data):
 	return dict( data_bytes=data_len,
 		oti_scheme=oti_scheme, oti_common=oti_common,
 		symbols=list((s[0], b64_encode(s[1])) for s in symbols),
-		checksums=dict(sha256=b64_encode(hashlib.sha256(data).digest())) )
+		checksums=dict(sha256=b64_encode(data_sha256)) )
 
 
 def decode(opts, data):
@@ -121,7 +121,7 @@ def _decode(opts, data):
 			try: dec.add_symbol(sym, sym_id)
 			except RQError as err: continue
 			n_syms, n_sym_bytes = n_syms + 1, n_sym_bytes + len(sym)
-			try: data = dec.decode()
+			try: data = dec.decode()[:data['data_bytes']] # strips \0 padding to rq block size
 			except RQError as err: pass
 			else:
 				log.debug('Decoded enough symbols to recover data (%.3fs)...', next(timer))
