@@ -60,8 +60,9 @@ def encode(opts, data):
 			opts.min_subsymbol_size, opts.symbol_size, opts.max_memory ) as enc:
 		log.debug('Initialized RQEncoder (%.3fs)...', next(timer))
 		oti_scheme, oti_common = enc.oti_scheme, enc.oti_common
-		enc.precompute(opts.threads, background=False)
-		log.debug('Precomputed blocks (%.3fs)...', next(timer))
+		if not opts.no_precompute:
+			enc.precompute(opts.threads, background=False)
+			log.debug('Precomputed blocks (%.3fs)...', next(timer))
 
 		symbols, enc_k, n_drop = list(), 0, 0
 		for block in enc:
@@ -155,6 +156,9 @@ def main(args=None, error_func=None):
 	cmd.add_argument('path_dst', nargs='?',
 		help='Path to write resulting JSON to. Will be dumped to stdout, if not specified.')
 
+	cmd.add_argument('--no-precompute', action='store_true',
+		help='Do not run precompute() synchronously before encoding symbols.'
+			' Should be much slower, so probably only useful for benchmarking or debugging.')
 	cmd.add_argument('-j', '--threads',
 		type=int, metavar='n',
 		help='Number of encoder threads to use. 0 to scale to all cpus (default).')
