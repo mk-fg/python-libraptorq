@@ -9,7 +9,7 @@ properly requires knowledge of some concepts and parameters described in that
 RFC, and not using correct ones may result in undecodable data!
 See "Usage" section below for more details.
 
-**Warning**: as far as I know (not a lawyer), there are lots of patents around
+**Warning**: As far as I know (not a lawyer), there are lots of patents around
 the use of this technology, which might be important for any high-profile and
 commercial projects, especially in US and Canada.
 
@@ -76,7 +76,7 @@ a standalone tool, or for basic algorithm testing/showcase.
 Can also be used from command-line via ``python2 -m libraptorq ...`` invocation
 (when installed as module), e.g. ``python2 -m libraptorq --help``.
 
-**Important**: with current 0.1.x libRaptorQ API, specifying unsuitable
+**Important**: With current 0.1.x libRaptorQ API, specifying unsuitable
 parameters for encoding, such as having symbol_size=16 and max_memory=200 for
 encoding 200K+ of data WILL result in **silently** producing encoded data that
 **cannot be decoded**.
@@ -227,6 +227,10 @@ installation, if that's the only thing you need there.
 Random Notes
 ------------
 
+* See `github-issue-1`_ for more info on what happens when encoding parameters
+  (such as symbol_size and max_memory) are specified carelessly, and why
+  command-line interface of this module does not have defaults for these.
+
 * libRaptorQ is currently used via CFFI in "ABI Mode" to avoid any extra hassle
   with compilation and the need for compiler, see `CFFI docs on the subject`_
   for more info on what it means.
@@ -241,4 +245,5 @@ Random Notes
 * Lack of Python 3.X compatibility is due to me not using it at all (yet?), so
   don't need it, have nothing against it in principle.
 
+.. _github-issue-1: https://github.com/mk-fg/python-libraptorq/issues/1
 .. _CFFI docs on the subject: https://cffi.readthedocs.org/en/latest/cdef.html
