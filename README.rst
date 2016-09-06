@@ -4,10 +4,9 @@ python-libraptorq
 Python 2.X CFFI_ bindings for libRaptorQ_ - C++11 implementation of RaptorQ
 Forward Error Correction codes, as described in RFC6330_.
 
-**WARNING**: This module is very poorly-tested and seem to have bugs that lead
-to actual (and random) data corruption (!!!), see e.g.
-`github-issue-1 <https://github.com/mk-fg/python-libraptorq/issues/1>`_.
-Please DO NOT USE IT for anything but idle tinkering.
+**Warning**: Using libRaptorQ RFC6330 API (which this module wraps around)
+properly requires knowledge of some concepts and parameters described in that
+RFC, and not using correct ones may result in undecodable data!
 
 **Warning**: as far as I know (not a lawyer), there are lots of patents around
 the use of this technology, which might be important for any high-profile and

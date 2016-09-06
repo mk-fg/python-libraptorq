@@ -57,7 +57,7 @@ def encode(opts, data):
 	if data_len % 4: data += '\0' * (4 - data_len % 4)
 	timer = timer_iter()
 	with RQEncoder( data,
-			opts.min_subsymbol_size, opts.symbol_size, opts.max_memory ) as enc:
+			opts.subsymbol_size, opts.symbol_size, opts.max_memory ) as enc:
 		log.debug('Initialized RQEncoder (%.3fs)...', next(timer))
 		oti_scheme, oti_common = enc.oti_scheme, enc.oti_common
 		if not opts.no_precompute:
@@ -76,7 +76,7 @@ def encode(opts, data):
 					block_syms[int(random.random() * len(block_syms))] = None
 				n_drop += n_drop_block
 			symbols.extend(block_syms)
-		log.debug('Finished encoding symbols (%.3fs)...', next(timer))
+		log.debug('Finished encoding symbols (%s blocks, %.3fs)...', enc.blocks, next(timer))
 	log.debug('Closed RQEncoder (%.3fs)...', next(timer))
 
 	symbols = filter(None, symbols)
@@ -165,16 +165,18 @@ def main(args=None, error_func=None):
 	# cmd.add_argument('-t', '--rq-type',
 	# 	default='32', metavar='{ NONE | 8 | 16 | 32 | 64 }',
 	# 	help='No idea what it means, see RFC6330. Default: %(default)s')
-	cmd.add_argument('-k', '--min-subsymbol-size',
-		type=int, default=8, metavar='bytes',
-		help='No idea what it means, see RFC6330. Default: %(default)s')
+	cmd.add_argument('-k', '--subsymbol-size',
+		type=int, metavar='bytes',
+		help='Should almost always be equal to symbol size.'
+			' See RFC6330 for details. Set to value of symbols size if not specified.')
 	cmd.add_argument('-s', '--symbol-size',
 		type=int, default=16, metavar='bytes',
 		help='Size of each indivisible (must either be present intact'
 			' or lost entirely when decoding) symbol in the output. Default: %(default)s')
 	cmd.add_argument('-m', '--max-memory',
-		type=int, default=200, metavar='megabytes?',
-		help='Uh... max memory in megs? Not sure. Default: %(default)s')
+		type=int, default=500, metavar='int',
+		help='"max memory" value from RFC6330.'
+			' Raise it if encoding fails to produce valid (decodable) data. Default: %(default)s')
 
 	cmd.add_argument('-n', '--repair-symbols-rate',
 		default=0, type=float, metavar='float',
@@ -213,6 +215,7 @@ def main(args=None, error_func=None):
 
 	try:
 		if opts.cmd == 'encode':
+			if not opts.subsymbol_size: opts.subsymbol_size = opts.symbol_size
 			data = json.dumps( encode(opts, data),
 				sort_keys=True, indent=2, separators=(',', ': ') )
 		elif opts.cmd == 'decode':

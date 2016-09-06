@@ -141,7 +141,11 @@ class RQObject(object):
 			return ft.partial(getattr(self._lib, 'RaptorQ_{}'.format(k[3:])), self._ctx)
 		return self.__getattribute__(k)
 
-	def free(self):
+	def open(self):
+		self._ctx = self._ctx_init[0](*self._ctx_init[1])
+		return self._ctx
+
+	def close(self):
 		if self._ctx:
 			ptr = self._ffi.new('struct RaptorQ_ptr **')
 			ptr[0] = self._ctx
@@ -149,11 +153,10 @@ class RQObject(object):
 			self._ctx = None
 
 	def __enter__(self):
-		self._ctx = self._ctx_init[0](*self._ctx_init[1])
+		self.open()
 		return self
-
-	def __exit__(self, err_t, err, err_tb): self.free()
-	def __del__(self): self.free()
+	def __exit__(self, *err): self.close()
+	def __del__(self): self.close()
 
 
 	def sym_id(self, esi, sbn): return self._lib.RaptorQ_id(esi, sbn)
