@@ -162,28 +162,30 @@ def main(args=None, error_func=None):
 	cmd.add_argument('-j', '--threads',
 		type=int, metavar='n',
 		help='Number of encoder threads to use. 0 to scale to all cpus (default).')
-	# cmd.add_argument('-t', '--rq-type',
-	# 	default='32', metavar='{ NONE | 8 | 16 | 32 | 64 }',
-	# 	help='No idea what it means, see RFC6330. Default: %(default)s')
 	cmd.add_argument('-k', '--subsymbol-size',
 		type=int, metavar='bytes',
 		help='Should almost always be equal to symbol size.'
 			' See RFC6330 for details. Set to value of symbols size if not specified.')
 	cmd.add_argument('-s', '--symbol-size',
-		type=int, default=16, metavar='bytes',
-		help='Size of each indivisible (must either be present intact'
-			' or lost entirely when decoding) symbol in the output. Default: %(default)s')
+		required=True, type=int, metavar='bytes',
+		help='Size of each indivisible (must either be'
+				' present intact or lost entirely when decoding) symbol in the output.'
+			' Using wrong value here (for data size) can result in undecodable output.'
+			' See RFC6330 or libRaptorQ code/docs for more information.'
+			' Must be specified manually.')
 	cmd.add_argument('-m', '--max-memory',
-		type=int, default=500, metavar='int',
-		help='"max memory" value from RFC6330.'
-			' Raise it if encoding fails to produce valid (decodable) data. Default: %(default)s')
+		required=True, type=int, metavar='int',
+		help='Value for working memory of the decoder,'
+			' see RFC6330 or libRaptorQ code/docs for more information.'
+			' Raise it if encoding fails to produce valid (decodable) data.'
+			' Must be specified manually.')
 
 	cmd.add_argument('-n', '--repair-symbols-rate',
-		default=0, type=float, metavar='float',
+		required=True, type=float, metavar='float',
 		help='Fraction of extra symbols to generate above what is required'
 				' to reassemble to file as a fraction of that "required" count.'
 			' For example, if 100 symbols are required, "-n 0.5" will generate 150 symbols.'
-			' Default is to only generate required amount (i.e. "-n 0").')
+			' Must be specified manually.')
 
 	cmd.add_argument('-d', '--drop-rate',
 		default=0, type=float, metavar='0-1.0',

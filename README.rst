@@ -7,6 +7,7 @@ Forward Error Correction codes, as described in RFC6330_.
 **Warning**: Using libRaptorQ RFC6330 API (which this module wraps around)
 properly requires knowledge of some concepts and parameters described in that
 RFC, and not using correct ones may result in undecodable data!
+See "Usage" section below for more details.
 
 **Warning**: as far as I know (not a lawyer), there are lots of patents around
 the use of this technology, which might be important for any high-profile and
@@ -55,12 +56,6 @@ Note that being a probablilistic algorithm, RaptorQ can have highly-improbable
 pathological cases and be exploited through these e.g. by dropping specific data
 blocks (see `"Stopping a Rapid Tornado with a Puff" paper`_ for more details).
 
-| Whole input can have up to 256 "source blocks" (encoded independently).
-| Each block can have up to 56.403 symbols.
-| Each symbol can be up to 65.535 (2**16 - 1) bytes long.
-| This sums up to ~881 GiB max for one encoder input.
-|
-
 Encoded data will be roughly same size as original plus the "repair symbols",
 i.e. almost no size overhead, except for what is intentionally generated.
 
@@ -81,6 +76,12 @@ a standalone tool, or for basic algorithm testing/showcase.
 Can also be used from command-line via ``python2 -m libraptorq ...`` invocation
 (when installed as module), e.g. ``python2 -m libraptorq --help``.
 
+**Important**: with current 0.1.x libRaptorQ API, specifying unsuitable
+parameters for encoding, such as having symbol_size=16 and max_memory=200 for
+encoding 200K+ of data WILL result in **silently** producing encoded data that
+**cannot be decoded**.
+
+
 Command-line script
 '''''''''''''''''''
 
@@ -89,15 +90,21 @@ stored/transmitted intact or lost entirely) and 30% of total from these (K
 required symbols + X repair symbols) dropped (just for testing purposes) before
 saving them to "setup.py.enc"::
 
-  % ./rq --debug encode --repair-symbols-rate 0.5 --drop-rate 0.3 setup.py setup.py.enc
-  2016-02-25 03:21:09 :: DEBUG :: Encoded 1,721 B into 168 symbols\
-    (needed: >108, repair rate: 50%), 48 dropped (30%), 120 left in output (1,920 B without ids)
+  % ./rq --debug encode -s16 -m200 --repair-symbols-rate 0.5 --drop-rate 0.3 setup.py setup.py.enc
+  Initialized RQEncoder (0.063s)...
+  Precomputed blocks (0.002s)...
+  Finished encoding symbols (9 blocks, 0.008s)...
+  Closed RQEncoder (0.002s)...
+  Encoded 1,721 B into 167 symbols (needed: >108, repair rate: 50%),
+    45 dropped (30%), 122 left in output (1,952 B without ids)
 
 Decode original file back from these::
 
   % ./rq --debug decode setup.py.enc setup.py.dec
-  2016-02-25 03:21:34 :: DEBUG :: Decoded 1,721 B of data\
-    from 108 processed symbols (1,728 B without ids, symbols total: 120)
+  Initialized RQDecoder (0.064s)...
+  Decoded enough symbols to recover data (0.010s)...
+  Closed RQDecoder (0.002s)...
+  Decoded 1,721 B of data from 108 processed symbols (1,728 B without ids, symbols total: 122)
 
   % sha256sum -b setup.py{,.dec}
   36c50348459b51821a2715b0f5c4ef08647d66f77a29913121af4f0f4dfef454 *setup.py
@@ -109,7 +116,9 @@ should be recoverable from output as long as number of chunks left (in each
 
 Output data ("setup.py.enc" in the example) for the script is JSON-encoded list
 of base64-encoded symbols, as well as some parameters for lib init
-(``oti_scheme``, ``oti_common``) and input data length.
+(``oti_scheme``, ``oti_common``). input data length and sha256 hash of source
+data to make sure that decoded data is same as original (or exit with error
+otherwise).
 
 See output with --help option for all the other script parameters.
 
