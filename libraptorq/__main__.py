@@ -218,8 +218,9 @@ def main(args=None, error_func=None):
 	try:
 		if opts.cmd == 'encode':
 			if not opts.subsymbol_size: opts.subsymbol_size = opts.symbol_size
-			data = json.dumps( encode(opts, data),
-				sort_keys=True, indent=2, separators=(',', ': ') )
+			try: data = encode(opts, data)
+			except RQError as err: raise EncDecFailure(str(err))
+			data = json.dumps(data, sort_keys=True, indent=2, separators=(',', ': '))
 		elif opts.cmd == 'decode':
 			data = decode(opts, json.loads(data))
 		else: raise NotImplementedError(opts.cmd)

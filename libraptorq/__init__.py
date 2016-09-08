@@ -178,14 +178,22 @@ class RQEncoder(RQObject):
 			'precompute_max_memory', 'OTI_Common', 'OTI_Scheme' ],
 		funcs=['block_size', 'symbols', 'free_block', 'max_repair'] )
 
-	def __init__(self, data, min_subsymbol_size, symbol_size, max_memory):
+	def __init__(self, data, min_subsymbol_size, symbol_size, max_memory, init_check=True):
 		super(RQEncoder, self).__init__()
 		self._sym_n = symbol_size / self._rq_blk_size
 		assert len(data) % self._rq_blk_size == 0, len(data)
 		rq_len = len(data) // self._rq_blk_size
+		self._ctx_init_check = init_check
 		self._ctx_init = self._lib.RaptorQ_Enc,\
 			[ self.rq_type_val(self._rq_type, 'enc'), data, rq_len,
 				min_subsymbol_size, symbol_size, max_memory ]
+
+	def open(self):
+		super(RQEncoder, self).open()
+		if self._ctx_init_check and self.oti_scheme == self.oti_common == 0:
+			raise RQError('Failed to initialize'
+				' encoder for specified data and encoding parameters')
+		return self._ctx
 
 	def precompute(self, n_threads=None, background=False):
 		return self.rq_precompute(n_threads or 0, background)
