@@ -123,7 +123,7 @@ class RQObject(object):
 		self._ffi = FFI()
 		self._ffi.cdef(self._cdefs)
 		# self.ffi.set_source('_rq', '#include <RaptorQ/cRaptorQ.h>')
-		self._lib = self._ffi.dlopen('libRaptorQ.so') # ABI mode for simplicity
+		self._lib = self._ffi.dlopen('RaptorQ') # ABI mode for simplicity
 		self.rq_types = ( ['NONE', None]
 			+ list('ENC_{}'.format(2**n) for n in xrange(3, 7))
 			+ list('DEC_{}'.format(2**n) for n in xrange(3, 7)) )
