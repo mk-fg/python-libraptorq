@@ -5,6 +5,7 @@ import itertools as it, operator as op, functools as ft
 import math
 
 from cffi import FFI
+import ctypes.util
 
 
 def _add_lib_wrappers(funcs=None, props=None):
@@ -123,7 +124,8 @@ class RQObject(object):
 		self._ffi = FFI()
 		self._ffi.cdef(self._cdefs)
 		# self.ffi.set_source('_rq', '#include <RaptorQ/cRaptorQ.h>')
-		self._lib = self._ffi.dlopen('RaptorQ') # ABI mode for simplicity
+		lib_name = ctypes.util.find_library('RaptorQ') # newer cffi should not do that automatically
+		self._lib = self._ffi.dlopen(lib_name) # ABI mode for simplicity
 		self.rq_types = ( ['NONE', None]
 			+ list('ENC_{}'.format(2**n) for n in xrange(3, 7))
 			+ list('DEC_{}'.format(2**n) for n in xrange(3, 7)) )
