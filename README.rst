@@ -158,7 +158,7 @@ For decoding (reverse operation)::
 
   data_len, oti_scheme, oti_common, symbols = data_encoded
 
-  with RQDecoder(oti_scheme, oti_common) as dec:
+  with RQDecoder(oti_common, oti_scheme) as dec:
     for sym_id, sym in symbols.viewitems(): dec.add_symbol(sym, sym_id)
 
     data = dec.decode()[:data_len]
