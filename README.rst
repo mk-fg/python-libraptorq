@@ -1,8 +1,8 @@
 python-libraptorq
 =================
 
-Python 2.X CFFI_ bindings for libRaptorQ_ - C++11 implementation of RaptorQ
-Forward Error Correction codes, as described in RFC6330_.
+Python 2.X CFFI_ bindings for libRaptorQ_ v0.1.x - C++11 implementation of
+RaptorQ Forward Error Correction codes, as described in RFC6330_.
 
 **Warning**: Using libRaptorQ RFC6330 API (which this module wraps around)
 properly requires knowledge of some concepts and parameters described in that
@@ -181,8 +181,11 @@ Installation
 
 It's a regular package for Python 2.7 (not 3.X).
 
-It uses and needs CFFI_ (can/should be installed by pip_) and libRaptorQ_
+It uses and needs CFFI_ (can/should be installed by pip_) and libRaptorQ_ v0.1.x
 installed (as libRaptorQ.so) on the system.
+
+libRaptorQ v1.x (as opposed to current stable version 0.1.9) has different API
+and **will not** work with this module.
 
 Using pip_ is the best way::
 
