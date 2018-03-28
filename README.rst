@@ -116,11 +116,13 @@ should be recoverable from output as long as number of chunks left (in each
 
 Output data ("setup.py.enc" in the example) for the script is JSON-encoded list
 of base64-encoded symbols, as well as some parameters for lib init
-(``oti_scheme``, ``oti_common``). input data length and sha256 hash of source
-data to make sure that decoded data is same as original (or exit with error
-otherwise).
+(``oti_scheme``, ``oti_common``).
+
+Input data length and sha256 hash of source data are only there to make sure
+that decoded data is same as original (or exit with error otherwise).
 
 See output with --help option for all the other script parameters.
+
 
 Python module
 '''''''''''''
