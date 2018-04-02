@@ -85,9 +85,13 @@ encoding 200K+ of data WILL result in **silently** producing encoded data that
 Command-line script
 '''''''''''''''''''
 
+Note: it's just an example/testing script to run and check if module works with
+specific parameters or see how to use it, don't rely on it as a production tool
+or anything like that.
+
 To encode file, with 50% extra symbols (resulting indivisible data chunks to be
 stored/transmitted intact or lost entirely) and 30% of total from these (K
-required symbols + X repair symbols) dropped (just for testing purposes) before
+required symbols + X repair symbols) dropped (for testing purposes) before
 saving them to "setup.py.enc"::
 
   % ./rq --debug encode -s16 -m200 --repair-symbols-rate 0.5 --drop-rate 0.3 setup.py setup.py.enc
